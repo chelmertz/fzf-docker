@@ -1,5 +1,8 @@
 #!/bin/bash
 
+preview=--preview='docker ps -a --filter name=^{}$'
+preview_w=--preview-window=down:2
+
 # $1 (Optionally) - if present (value doesn't matter), this test checks if any containers exist. Else, if active (running) containers exis
 __docker_pre_test() {
   if [[ -z "$1" ]] && [[ $(docker ps --format '{{.Names}}') ]]; then
@@ -161,7 +164,7 @@ __docker_compose_parse_services_config() {
 dr() {
   __docker_pre_test
   if [ $? -eq 0 ]; then
-    local containers=$(docker ps --format '{{.Names}}' | fzf -m)
+    local containers=$(docker ps --format '{{.Names}}' | fzf -m "$preview" "$preview_w")
 
     echo -e "$containers" \
       | while read -r name; do
@@ -177,7 +180,7 @@ dr() {
 dl() {
   __docker_pre_test "all"
   if [ $? -eq 0 ]; then
-    local containers=$(docker ps -a --format '{{.Names}}' | fzf -m)
+    local containers=$(docker ps -a --format '{{.Names}}' | fzf -m "$preview" "$preview_w")
     __docker_logs "$1" "$containers"
   fi
 }
@@ -195,7 +198,7 @@ dla() {
 de() {
   __docker_pre_test
   if [ $? -eq 0 ]; then
-    local name=$(docker ps --format '{{.Names}}' | fzf)
+    local name=$(docker ps --format '{{.Names}}' | fzf "$preview" "$preview_w")
 
     if [ ! -z "$name" ]; then
       local command="$1"
@@ -244,7 +247,7 @@ de() {
 drm() {
   __docker_pre_test "all" \
     && docker ps -aq --format "{{.Names}}" \
-      | fzf -m \
+      | fzf -m "$preview" "$preview_w" \
       | while read -r name; do
           docker rm -f $name
         done
@@ -260,7 +263,7 @@ drma() {
 ds() {
   __docker_pre_test \
     && docker ps --format '{{.Names}}' \
-      | fzf -m  \
+      | fzf -m "$preview" "$preview_w"  \
       | while read -r name; do
           docker update --restart=no $name
           docker stop $name
@@ -280,7 +283,7 @@ dsa() {
 dsrm() {
   __docker_pre_test \
     && docker ps --format '{{.Names}}' \
-      | fzf -m  \
+      | fzf -m "$preview" "$preview_w"  \
       | while read -r name; do
           docker update --restart=no $name
           docker stop $name
@@ -299,7 +302,7 @@ dsrma() {
 dk() {
   __docker_pre_test \
     && docker ps --format '{{.Names}}' | fzf -m --print0 \
-      | fzf -m \
+      | fzf -m "$preview" "$preview_w" \
       | while read -r name; do
           docker update --restart=no $name
           docker kill $name
@@ -319,7 +322,7 @@ dka() {
 dkrm() {
   __docker_pre_test \
     && docker ps --format '{{.Names}}' \
-      | fzf -m \
+      | fzf -m "$preview" "$preview_w" \
       | while read -r name; do
           docker update --restart=no $name
           docker kill $name
@@ -466,7 +469,7 @@ drmi() {
     #column1 contains ids. multiple ids per line may be comma seperated
     #because there may be an overlap in dangling image ids, remove duplicates.
     echo -e "$images" \
-      | fzf -m -d "\t" --with-nth=2 \
+      | fzf -m -d "\t" "$preview" "$preview_w" --with-nth=2 \
       | cut -f 1 \
       | sed 's/,/\n/g' \
       | sort \
